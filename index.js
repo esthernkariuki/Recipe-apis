@@ -11,6 +11,8 @@ const searchBtn = document.getElementById("searchBtn");
 const resultsContainer = document.getElementById("results");
 const savedList = document.getElementById("savedList");
 const savedRecipes = JSON.parse(localStorage.getItem("savedRecipes")) || [];
+
+
 selects.forEach(select => {
   ingredientsList.forEach(ingredient => {
     const option = document.createElement("option");
@@ -19,6 +21,7 @@ selects.forEach(select => {
     select.appendChild(option);
   });
 });
+
 searchBtn.addEventListener("click", () => {
   const ingredients = selects.map(s => s.value).filter(Boolean).join(",");
   if (ingredients) {
@@ -27,21 +30,29 @@ searchBtn.addEventListener("click", () => {
     resultsContainer.innerHTML = "<p>Please select at least one ingredient.</p>";
   }
 });
+
 async function fetchRecipes(ingredients) {
   resultsContainer.innerHTML = "<p>Searching...</p>";
-  const apiUrl = `https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredients}`;
-  try {
-    const res = await fetch(apiUrl);
+  const ingredientArray = ingredients.split(",");
+  const allMeals = [];
+  for (const ingredient of ingredientArray) {
+    const res = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${ingredient}`);
     const data = await res.json();
     if (data.meals) {
-      displayRecipes(data.meals);
-    } else {
-      resultsContainer.innerHTML = "<p>No recipes found. Try fewer or different ingredients.</p>";
+      allMeals.push(...data.meals);
     }
-  } catch (error) {
-    resultsContainer.innerHTML = "<p>Error fetching recipes.</p>";
+  }
+  if (allMeals.length > 0) {
+    const uniqueMeals = Array.from(
+      new Map(allMeals.map(meal => [meal.idMeal, meal])).values()
+    );
+    displayRecipes(uniqueMeals);
+  } else {
+    resultsContainer.innerHTML = "<p>No recipes found for the selected ingredients.</p>";
   }
 }
+
+
 function displayRecipes(meals) {
   resultsContainer.innerHTML = "";
   meals.forEach(meal => {
